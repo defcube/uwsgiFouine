@@ -14,7 +14,7 @@ import main
 
 def init_logger():
     logger = logging.getLogger('uwsgiFouine')
-    logger.setLevel(logging.WARN)
+    logger.setLevel(logging.ERROR)
     h = logging.StreamHandler()
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -39,12 +39,4 @@ if not len(args) == 1:
 if options.debugmode:
     logger.setLevel(logging.DEBUG)
 
-import cProfile
-cProfile.run('main.parse_log(args[0], options)', 'foo')
-s = pstats.Stats('foo')
-s.sort_stats('cumulative').print_stats(10)
-#######################################################
-import sys; sys.stdout = sys.stderr
-from IPython import embed; embed()
-import sys; sys.exit()
-#######################################################
+main.parse_log(args[0], options)

@@ -8,8 +8,8 @@ class MainTest(unittest.TestCase):
                "/contest/log_presence/shhootter/?_=1325592089910 " \
                "=> generated 192 bytes in 21 msecs (HTTP/1.1 200) " \
                "4 headers in 188 bytes (1 switches on core 0)"
-        res = main.parse_line(line)
-        self.assertEquals(res, ('/contest/log_presence/shhootter/?_=1325592089910', 21))
+        res = main.LineParser().parse_line(line)
+        self.assertEquals(res, ('/contest/log_presence/shhootter/', 21))
 
     def test_raise_error_on_bad_line(self):
         self.failUnlessRaises(lambda: main.parse_line('bad line'))
