@@ -57,14 +57,22 @@ def string_to_symbol(str):
 
 
 def print_data(data, num_results):
+    import locale
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    row_count = iter(xrange(1, 999999))
     def print_row(row):
         details = data[row[0]]
         args = {'path': row[0],
-                'total_msecs': sum(details),
-                'avg_msecs': numpy.average(details),
-                'max_msecs': max(details),
-                'num_calls': len(details)}
-        print "{path} | {total_msecs} total ms | {avg_msecs} avg ms | " \
+                'row_count': row_count.next(),
+                'total_msecs':
+                    locale.format('%d', sum(details), grouping=True),
+                'avg_msecs':
+                    locale.format('%d', numpy.average(details), grouping=True),
+                'max_msecs':
+                    locale.format('%d', max(details), grouping=True),
+                'num_calls':
+                    locale.format('%d', len(details), grouping=True),}
+        print "{row_count}. {path} | {total_msecs} total ms | {avg_msecs} avg ms | " \
               "{max_msecs} max ms | {num_calls} calls".format(**args)
     print "Where was the most time spent?"
     print "=============================="
@@ -73,6 +81,7 @@ def print_data(data, num_results):
         print_row(row)
     for i in xrange(3):
         print ""
+    row_count = iter(xrange(1, 999999))
     print "What were the slowest pages (max page load time)?"
     print "=============================="
     for row in  collections.Counter(
@@ -80,6 +89,7 @@ def print_data(data, num_results):
         print_row(row)
     for i in xrange(3):
         print ""
+    row_count = iter(xrange(1, 999999))
     print "What were the slowest pages (avg page load time)?"
     print "=============================="
     for row in  collections.Counter(
