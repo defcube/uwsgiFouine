@@ -1,2 +1,5 @@
 .idea
-lib/local.py
+local.py
+dist
+build
+uwsgiFouine.egg-info

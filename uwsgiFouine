@@ -1,15 +1,9 @@
 #!/usr/bin/env python
-
-
-# adjust the path so we can find the lib directory files
-import sys
-import os
-sys.path.append(os.path.dirname(__file__) + '/lib')
-
-
 import logging
 from optparse import OptionParser
-import main
+import sys
+
+import uwsgifouinelib as main
 
 
 def init_logger():
