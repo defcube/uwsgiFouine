@@ -1,4 +1,4 @@
-uwsgiFounie is a uwsgi log parser.
+uwsgiFouine is a uwsgi log parser.
 
 Call uwsgiFouine with a uswgi log file, and you will be given reports
 telling you where uwsgi is spending it's time.
