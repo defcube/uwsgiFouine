@@ -2,7 +2,11 @@ import collections
 from importlib import import_module
 import itertools
 import logging
-import numpy
+try:
+    from numpy import average
+except ImportError:
+    def average(data):
+        return sum(data) / len(data)
 import re
 
 
@@ -65,7 +69,7 @@ def print_data(data, num_results):
                 'total_msecs':
                     locale.format('%d', sum(details), grouping=True),
                 'avg_msecs':
-                    locale.format('%d', numpy.average(details), grouping=True),
+                    locale.format('%d', average(details), grouping=True),
                 'max_msecs':
                     locale.format('%d', max(details), grouping=True),
                 'num_calls':
@@ -91,7 +95,7 @@ def print_data(data, num_results):
     print "What were the slowest pages (avg page load time)?"
     print "=============================="
     for row in  collections.Counter(
-        condensed_data_to_summary(data, numpy.average))\
+        condensed_data_to_summary(data, average))\
         .most_common(num_results):
         print_row(row)
 
