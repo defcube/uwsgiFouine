@@ -31,8 +31,6 @@ class LineParser(object):
                 logger.warn("Can't parse line: {0}".format(line.strip()))
             return None
         path = res.group(2).split('?')[0]
-        if path.endswith('/'):
-            path = path[:-1]
         if self.path_map_function:
             path = self.path_map_function(path)
         return path, int(res.group(3))
