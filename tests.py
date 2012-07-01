@@ -12,7 +12,7 @@ class MainTest(unittest.TestCase):
         self.assertEquals(res, ('/contest/log_presence/shhootter/', 21))
 
     def test_raise_error_on_bad_line(self):
-        self.failUnlessRaises(lambda: main.parse_line('bad line'))
+        self.assertRaises(Exception, lambda: main.parse_line('bad line'))
 
     def test_condense_parsed(self):
         data =  [

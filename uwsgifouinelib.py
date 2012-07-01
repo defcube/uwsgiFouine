@@ -1,5 +1,8 @@
 import collections
-from importlib import import_module
+try:
+    from importlib import import_module
+except ImportError:
+    import_module = None
 import itertools
 import logging
 try:
@@ -54,7 +57,10 @@ def condensed_data_to_summary(data, aggregator):
 
 def string_to_symbol(str):
     parts = str.split('.')
-    module = import_module('.'.join(parts[:-1]))
+    if import_module:
+        module = import_module('.'.join(parts[:-1]))
+    else:
+        module = __import__('.'.join(parts[:-1]), globals(), locals(), [parts[-1]], 0)
     return getattr(module, parts[-1])
 
 
