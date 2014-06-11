@@ -1,5 +1,5 @@
 import unittest
-import main
+import uwsgifouinelib as main
 
 class MainTest(unittest.TestCase):
     def test_parse_line(self):
@@ -12,7 +12,7 @@ class MainTest(unittest.TestCase):
         self.assertEquals(res, ('/contest/log_presence/shhootter/', 21))
 
     def test_raise_error_on_bad_line(self):
-        self.failUnlessRaises(lambda: main.parse_line('bad line'))
+        self.assertRaises(Exception, lambda: main.parse_line('bad line'))
 
     def test_condense_parsed(self):
         data =  [
@@ -34,3 +34,5 @@ class MainTest(unittest.TestCase):
         out = main.condensed_data_to_summary(data, sum)
         self.failUnlessEqual(out, {'/123/': 9, '/b/': 2})
 
+if __name__ == '__main__':
+    unittest.main()

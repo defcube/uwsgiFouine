@@ -4,3 +4,4 @@ dist
 build
 uwsgiFouine.egg-info
 local_*
+*.pyc
