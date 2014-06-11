@@ -5,7 +5,7 @@ readme = open('README.rst').read()
 
 setup(
     name='uwsgiFouine',
-    version='1.0',
+    version='1.01',
     author_email='gattster@gmail.com',
     author='Philip Gatt',
     py_modules=['uwsgifouinelib'],
