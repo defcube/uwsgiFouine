@@ -5,7 +5,7 @@ readme = open('README.rst').read()
 
 setup(
     name='uwsgiFouine',
-    version='1.01',
+    version='1.04',
     author_email='gattster@gmail.com',
     author='Philip Gatt',
     py_modules=['uwsgifouinelib'],
@@ -13,4 +13,5 @@ setup(
     description="A uwsgi log parser.",
     long_description=readme,
     url='http://github.com/defcube/uwsgiFouine',
+    data_files=[('', ['README.rst'])],
     )
