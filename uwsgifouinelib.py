@@ -15,20 +15,18 @@ except ImportError:
     def average(data):
         return sum(data) / len(data)
 import re
+import sys
 
 
 logger = logging.getLogger('uwsgiFouine')
 
 
-def add_parse_options(parser):
-    parser.add_option('--num_results', action='store',
-                      dest='num_results', default=30, type='int')
-    parser.add_option('--path_map_function', action='store',
-                      dest='path_map_function', default=False,
-                      help='A python function to rename paths')
-    parser.add_option('--locale', action='store',
-                      dest='locale', default='en_US',
-                      help='locale used for printing report')
+def add_parse_arguments(parser):
+    parser.add_argument('--num_results', default=30, type=int)
+    parser.add_argument('--path_map_function', default=None,
+                        help='A python function to rename paths')
+    parser.add_argument('--locale', default='en_US',
+                        help='locale used for printing report')
 
 
 class LineParser(object):
@@ -91,7 +89,7 @@ def print_data(data, num_results, locale_name):
               "{max_msecs} max ms | {num_calls} calls".format(**args)
     print "Where was the most time spent?"
     print "=============================="
-    for row in  Counter(
+    for row in Counter(
         condensed_data_to_summary(data, sum)).most_common(num_results):
         print_row(row)
     for i in xrange(3):
@@ -99,7 +97,7 @@ def print_data(data, num_results, locale_name):
     row_count = iter(xrange(1, 999999))
     print "What were the slowest pages (max page load time)?"
     print "=============================="
-    for row in  Counter(
+    for row in Counter(
         condensed_data_to_summary(data, max)).most_common(num_results):
         print_row(row)
     for i in xrange(3):
@@ -107,16 +105,19 @@ def print_data(data, num_results, locale_name):
     row_count = iter(xrange(1, 999999))
     print "What were the slowest pages (avg page load time)?"
     print "=============================="
-    for row in  Counter(
+    for row in Counter(
         condensed_data_to_summary(data, average))\
         .most_common(num_results):
         print_row(row)
 
 
-def parse_log(logfile, options):
-    f = open(logfile, 'r')
+def parse_log(logfile, args):
+    if not logfile:
+        f = sys.stdin
+        logfile = 'stdin'
+    else:
+        f = open(logfile, 'r')
     logger.info("opened " + logfile)
-    parser = LineParser(options.path_map_function)
+    parser = LineParser(args.path_map_function)
     data = condense_parsed_data(itertools.imap(parser.parse_line, f))
-    print_data(data, options.num_results, options.locale)
-
+    print_data(data, args.num_results, args.locale)
