@@ -5,3 +5,4 @@ build
 uwsgiFouine.egg-info
 local_*
 *.pyc
+.python_version
