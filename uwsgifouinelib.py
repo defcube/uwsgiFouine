@@ -120,7 +120,11 @@ def print_data(data, num_results, locale_name):
 
 def parse_log(logfile, args):
     if not logfile:
-        f = sys.stdin
+        import select
+        if select.select((sys.stdin,), (), (), 0.0)[0]:
+            f = sys.stdin
+        else:
+            return False
         logfile = 'stdin'
     else:
         f = open(logfile, 'r')
