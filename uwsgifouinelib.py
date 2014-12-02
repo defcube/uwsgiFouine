@@ -8,6 +8,7 @@ try:
 except ImportError:
     import_module = None
 import itertools
+import locale
 import logging
 try:
     from numpy import average
@@ -22,10 +23,14 @@ logger = logging.getLogger('uwsgiFouine')
 
 
 def add_parse_arguments(parser):
+    try:
+        default_locale = '.'.join(locale.getdefaultlocale())
+    except TypeError:
+        default_locale = 'C'
     parser.add_argument('--num_results', default=30, type=int)
     parser.add_argument('--path_map_function', default=None,
                         help='A python function to rename paths')
-    parser.add_argument('--locale', default='en_US',
+    parser.add_argument('--locale', default=default_locale,
                         help='locale used for printing report')
 
 
@@ -70,8 +75,10 @@ def string_to_symbol(str):
 
 
 def print_data(data, num_results, locale_name):
-    import locale
-    locale.setlocale(locale.LC_ALL, locale_name)
+    try:
+        locale.setlocale(locale.LC_ALL, locale_name)
+    except locale.Error, error:
+        logger.warn('unable to set locale: %s: %s', locale_name, error)
     row_count = iter(xrange(1, 999999))
     def print_row(row):
         details = data[row[0]]
