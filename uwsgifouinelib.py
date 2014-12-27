@@ -44,21 +44,25 @@ Result = namedtuple('Result', ('path', 'min', 'max', 'avg', 'sum', 'cnt'))
 
 
 class LineParser(object):
+    _re = re.compile(r'(?:POST|GET|DELETE|PUT) (\S*?) => generated .*? in (\d+) msecs')
+
     def __init__(self, path_map_function=None):
         if path_map_function:
             self.path_map_function = string_to_symbol(path_map_function)
         else:
             self.path_map_function = None
 
+
     def parse_line(self, line):
-        res = re.match(r'.* (GET|POST) (\S+) .* in (\d+) msecs .*', line)
-        if not res:
+        try:
+            res = self._re.search(line).groups()
+        except AttributeError:
             logger.debug("Can't parse line: %s", line.strip())
             return None
-        path = res.group(2).split('?')[0]
+        path = res[0].split('?')[0]
         if self.path_map_function:
             path = self.path_map_function(path)
-        return path, int(res.group(3))
+        return path, int(res[1])
 
 
 
@@ -250,11 +254,11 @@ def main():
             parser.error('Please feed me with at least a logfile or data on stdin.')
 
     maps = []
-    line_parser = LineParser(args.path_map_function).parse_line
+    parse_line = LineParser(args.path_map_function).parse_line
     for logfile in args.logfile:
         try:
             logger.info('parsing %s', logfile.name)
-            maps.append(itertools.imap(line_parser, logfile))
+            maps.append(itertools.imap(parse_line, logfile))
         except KeyboardInterrupt, err:
             logger.warn('caught %s', err)
             break
