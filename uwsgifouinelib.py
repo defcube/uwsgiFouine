@@ -1,37 +1,43 @@
 from collections import defaultdict
+import itertools
+import locale
+import logging
+import re
+import sys
+
 try:
     from collections import Counter
 except ImportError:
     from counter import Counter
+
 try:
     from importlib import import_module
 except ImportError:
     import_module = None
-import itertools
-import locale
-import logging
+
 try:
     from numpy import average
 except ImportError:
     def average(data):
         return sum(data) / len(data)
-import re
-import sys
+
+
+
 
 
 logger = logging.getLogger('uwsgiFouine')
+if len(logger.handlers) == 0:
+    handler = logging.StreamHandler()
+    handler.setFormatter(
+        logging.Formatter(
+            "%(levelname)s: %(message)s"
+        )
+    )
+    logger.addHandler(handler)
+    del handler
 
 
-def add_parse_arguments(parser):
-    try:
-        default_locale = '.'.join(locale.getdefaultlocale())
-    except TypeError:
-        default_locale = 'C'
-    parser.add_argument('--num_results', default=30, type=int)
-    parser.add_argument('--path_map_function', default=None,
-                        help='A python function to rename paths')
-    parser.add_argument('--locale', default=default_locale,
-                        help='locale used for printing report')
+
 
 
 class LineParser(object):
@@ -74,11 +80,7 @@ def string_to_symbol(str):
     return getattr(module, parts[-1])
 
 
-def print_data(data, num_results, locale_name):
-    try:
-        locale.setlocale(locale.LC_ALL, locale_name)
-    except locale.Error, error:
-        logger.warn('unable to set locale: %s: %s', locale_name, error)
+def print_data(data, num_results):
     row_count = iter(xrange(1, 999999))
     def print_row(row):
         details = data[row[0]]
@@ -118,17 +120,62 @@ def print_data(data, num_results, locale_name):
         print_row(row)
 
 
-def parse_log(logfile, args):
-    if not logfile:
-        import select
+def main():
+    import argparse
+    import select
+
+    try:
+        default_locale = '.'.join(locale.getdefaultlocale())
+    except TypeError:
+        default_locale = 'C'
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument('-q', '--quiet', action='store_const', const=0, dest='verbose')
+    parser.add_argument('-v', '--verbose', action='count', default=1)
+    parser.add_argument('-d', '--debug', action='store_const', const=3, dest='verbose')
+
+    parser.add_argument('--path_map_function', default=None, metavar='name',
+        help='A python function to rename paths')
+    parser.add_argument('--num_results', default=30, type=int, metavar='N',
+        help='limit output results')
+    parser.add_argument('--locale', default=default_locale,
+        help='locale used for printing report')
+
+    parser.add_argument('logfile', nargs='?', type=argparse.FileType('r'))
+
+    args = parser.parse_args()
+
+    if args.verbose == 0:
+        logger.setLevel(logging.ERROR)
+    elif args.verbose == 1:
+        logger.setLevel(logging.WARNING)
+    elif args.verbose == 2:
+        logger.setLevel(logging.INFO)
+    elif args.verbose >= 3:
+        logger.setLevel(logging.DEBUG)
+
+    try:
+        locale.setlocale(locale.LC_ALL, args.locale)
+    except locale.Error, error:
+        logger.warn('unable to set locale: %s: %s', args.locale, error)
+
+    f = args.logfile
+    if not args.logfile:
         if select.select((sys.stdin,), (), (), 0.0)[0]:
             f = sys.stdin
         else:
-            return False
-        logfile = 'stdin'
-    else:
-        f = open(logfile, 'r')
-    logger.info("opened " + logfile)
+            parser.error('Please feed me with at least a logfile or data on stdin.')
+
+    logger.info("opened " + f.name)
     parser = LineParser(args.path_map_function)
     data = condense_parsed_data(itertools.imap(parser.parse_line, f))
-    print_data(data, args.num_results, args.locale)
+    print_data(data, args.num_results)
+
+
+
+
+
+if __name__ == '__main__':
+    main()

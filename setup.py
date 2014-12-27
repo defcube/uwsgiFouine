@@ -9,7 +9,11 @@ setup(
     author_email='gattster@gmail.com',
     author='Philip Gatt',
     py_modules=['uwsgifouinelib'],
-    scripts=['uwsgiFouine'],
+    entry_points = {
+        'console_scripts': [
+            'uwsgiFouine = uwsgifouinelib:main',
+        ],
+    },
     description="A uwsgi log parser.",
     long_description=readme,
     url='http://github.com/defcube/uwsgiFouine',
