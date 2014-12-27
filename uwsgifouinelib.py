@@ -1,9 +1,10 @@
-from collections import defaultdict
 import itertools
 import locale
 import logging
 import re
 import sys
+
+from collections import defaultdict, namedtuple
 
 try:
     from collections import Counter
@@ -36,6 +37,8 @@ if len(logger.handlers) == 0:
     logger.addHandler(handler)
     del handler
 
+Result = namedtuple('Result', ('path', 'min', 'max', 'avg', 'sum', 'cnt'))
+
 
 
 
@@ -59,6 +62,30 @@ class LineParser(object):
         return path, int(res.group(3))
 
 
+
+class Formats(dict):
+    def register(self, name=None):
+        '''a decorator used to register output formaters
+
+        Example::
+
+            FORMATS = Formats()
+
+            @FORMATS.register('py')
+            def output_as_python(data, args):
+                return data
+        '''
+        def decorator(func):
+            self[name or func.func_name] = func
+            return func
+        return decorator
+
+
+
+FORMATS = Formats()
+
+
+
 def condense_parsed_data(data):
     res = defaultdict(list)
     for row in data:
@@ -80,44 +107,94 @@ def string_to_symbol(str):
     return getattr(module, parts[-1])
 
 
-def print_data(data, num_results):
-    row_count = iter(xrange(1, 999999))
-    def print_row(row):
+@FORMATS.register('text')
+def print_data(data, args):
+    num_results = args.num_results
+
+    def print_title(value):
+        print value
+        print '=' * len(value)
+
+    def print_row():
         details = data[row[0]]
-        args = {'path': row[0],
-                'row_count': row_count.next(),
-                'total_msecs':
-                    locale.format('%d', sum(details), grouping=True),
-                'avg_msecs':
-                    locale.format('%d', average(details), grouping=True),
-                'max_msecs':
-                    locale.format('%d', max(details), grouping=True),
-                'num_calls':
-                    locale.format('%d', len(details), grouping=True),}
-        print "{row_count}. {path} | {total_msecs} total ms | {avg_msecs} avg ms | " \
-              "{max_msecs} max ms | {num_calls} calls".format(**args)
-    print "Where was the most time spent?"
-    print "=============================="
-    for row in Counter(
-        condensed_data_to_summary(data, sum)).most_common(num_results):
-        print_row(row)
-    for i in xrange(3):
-        print ""
-    row_count = iter(xrange(1, 999999))
-    print "What were the slowest pages (max page load time)?"
-    print "=============================="
-    for row in Counter(
-        condensed_data_to_summary(data, max)).most_common(num_results):
-        print_row(row)
-    for i in xrange(3):
-        print ""
-    row_count = iter(xrange(1, 999999))
-    print "What were the slowest pages (avg page load time)?"
-    print "=============================="
-    for row in Counter(
-        condensed_data_to_summary(data, average))\
-        .most_common(num_results):
-        print_row(row)
+        print locale.format_string(
+            '%(count)d. %(path)s | %(total_msecs)d total ms | %(avg_msecs)d avg ms | %(max_msecs)d max ms | %(num_calls)d calls',
+            {
+                'count': count,
+                'path': row[0],
+                'total_msecs': sum(details),
+                'avg_msecs': average(details),
+                'max_msecs': max(details),
+                'num_calls': len(details),
+            },
+            grouping=True,
+        )
+
+    print_title("Where was the most time spent?")
+    for count, row in enumerate(
+        Counter(condensed_data_to_summary(data, sum))
+        .most_common(num_results)
+        ):
+        print_row()
+    print "\n\n\n"
+
+    print_title("What were the slowest pages (max page load time)?")
+    for count, row in enumerate(
+        Counter(condensed_data_to_summary(data, max))
+        .most_common(num_results)
+        ):
+        print_row()
+    print "\n\n\n"
+
+    print_title("What were the slowest pages (avg page load time)?")
+    for count, row in enumerate(
+        Counter(condensed_data_to_summary(data, average))
+        .most_common(num_results)
+        ):
+        print_row()
+
+
+@FORMATS.register('dump_json')
+def dump_json(data, args):
+    import json
+    print json.dumps(
+        data
+    )
+
+
+def aggregate(data):
+    '''
+    return an iterator over a result of :func:`condense_parsed_data`;
+    where each item is a :data:`Result`
+    '''
+    return (
+        Result(
+            k,
+            min(v),
+            max(v),
+            average(v),
+            sum(v),
+            len(v),
+        )
+        for k, v in data.iteritems()
+        if v
+    )
+
+
+@FORMATS.register('json')
+def print_json(data, args):
+    import json
+    print json.dumps(
+        dict(
+            (
+                row.path,
+                dict(zip(row._fields[1:], row[1:])),
+            )
+            for row in aggregate(data)
+        ),
+        indent=2,
+    )
+
 
 
 def main():
@@ -136,14 +213,20 @@ def main():
     parser.add_argument('-v', '--verbose', action='count', default=1)
     parser.add_argument('-d', '--debug', action='store_const', const=3, dest='verbose')
 
+    parser.add_argument('--format', default='text', choices=FORMATS,
+        help='output format')
     parser.add_argument('--path_map_function', default=None, metavar='name',
         help='A python function to rename paths')
-    parser.add_argument('--num_results', default=30, type=int, metavar='N',
+
+    group = parser.add_argument_group(
+        'Text options',
+        'Apply only when --format text; ignored on other formats.')
+    group.add_argument('--num_results', default=30, type=int, metavar='N',
         help='limit output results')
-    parser.add_argument('--locale', default=default_locale,
+    group.add_argument('--locale', default=default_locale,
         help='locale used for printing report')
 
-    parser.add_argument('logfile', nargs='?', type=argparse.FileType('r'))
+    parser.add_argument('logfile', nargs='*', type=argparse.FileType('r'))
 
     args = parser.parse_args()
 
@@ -161,18 +244,29 @@ def main():
     except locale.Error, error:
         logger.warn('unable to set locale: %s: %s', args.locale, error)
 
-    f = args.logfile
     if not args.logfile:
         if select.select((sys.stdin,), (), (), 0.0)[0]:
-            f = sys.stdin
+            args.logfile = (sys.stdin,)
         else:
             parser.error('Please feed me with at least a logfile or data on stdin.')
 
-    logger.info("opened " + f.name)
-    parser = LineParser(args.path_map_function)
-    data = condense_parsed_data(itertools.imap(parser.parse_line, f))
-    print_data(data, args.num_results)
+    maps = []
+    line_parser = LineParser(args.path_map_function).parse_line
+    for logfile in args.logfile:
+        try:
+            logger.info('parsing %s', logfile.name)
+            maps.append(itertools.imap(line_parser, logfile))
+        except KeyboardInterrupt, err:
+            logger.warn('caught %s', err)
+            break
 
+    data = []
+    try:
+        data = condense_parsed_data(itertools.chain(*maps))
+    except KeyboardInterrupt, err:
+        logger.warn('caught %s while condensating', err)
+
+    FORMATS[args.format](data, args)
 
 
 
