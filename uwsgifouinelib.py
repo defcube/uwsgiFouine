@@ -53,8 +53,7 @@ class LineParser(object):
     def parse_line(self, line):
         res = re.match(r'.* (GET|POST) (\S+) .* in (\d+) msecs .*', line)
         if not res:
-            if logger.isEnabledFor(logger.warn):
-                logger.warn("Can't parse line: {0}".format(line.strip()))
+            logger.debug("Can't parse line: %s", line.strip())
             return None
         path = res.group(2).split('?')[0]
         if self.path_map_function:
